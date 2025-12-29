@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import type { Attendance } from '@prisma/client';
 import {
   getExpectedWorkingHours,
   getWorkingHoursForDay,
@@ -23,7 +24,7 @@ export async function GET(request: NextRequest) {
     }
 
     const [year, monthNum] = month.split('-').map(Number);
-    const expectedHours = getExpectedWorkingHours(year, monthNum); // FIX: Calculate this early
+    const expectedHours = getExpectedWorkingHours(year, monthNum);
     
     // Check if Prisma is available
     if (!prisma) {
@@ -58,8 +59,8 @@ export async function GET(request: NextRequest) {
     const employeeSummaries: EmployeeSummary[] = [];
 
     for (const employee of employees) {
-      const attendanceMap = new Map(
-        employee.attendances.map((att: any) => [formatDate(att.date), att])
+      const attendanceMap = new Map<string, Attendance>(
+        employee.attendances.map((att: Attendance) => [formatDate(att.date), att])
       );
 
       const dailyRecords: AttendanceRecord[] = [];
