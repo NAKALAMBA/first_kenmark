@@ -11,31 +11,30 @@ datasource db {
 }
 
 model Employee {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  employeeId String
-  name      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String       @id @default(auto()) @map("_id") @db.ObjectId
+  employeeId String       @unique
+  name       String
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
   
   attendances Attendance[]
   
-  @@unique([employeeId])
   @@map("employees")
 }
 
 model Attendance {
-  id         String   @id @default(auto()) @map("_id") @db.ObjectId
-  employeeId String
-  employee   Employee @relation(fields: [employeeId], references: [id])
-  date       DateTime
-  inTime     String?
-  outTime    String?
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  employeeId  String
+  date        DateTime
+  inTime      String?
+  outTime     String?
   workedHours Float?
-  isLeave    Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  isLeave     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
   
   @@unique([employeeId, date])
+  @@index([employeeId])
+  @@index([date])
   @@map("attendances")
 }
-
