@@ -10,7 +10,7 @@ import {
   calculateWorkedHours,
 } from '@/lib/utils';
 import { AttendanceData, EmployeeSummary, AttendanceRecord } from '@/types';
-
+export const maxDuration = 600; 
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
@@ -153,3 +153,4 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
