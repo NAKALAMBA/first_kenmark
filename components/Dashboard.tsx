@@ -27,25 +27,25 @@ export default function Dashboard({ data, selectedMonth }: DashboardProps) {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <StatCard
             title="Total Expected Hours"
-            value={data.totalExpectedHours.toFixed(1)}
+            value={String(data.totalExpectedHours.toFixed(1))}
             unit="hours"
             color="blue"
           />
           <StatCard
             title="Total Worked Hours"
-            value={data.totalWorkedHours.toFixed(1)}
+            value={String(data.totalWorkedHours.toFixed(1))}
             unit="hours"
             color="green"
           />
           <StatCard
             title="Total Leaves Used"
-            value={data.totalLeaves}
+            value={String(data.totalLeaves)}
             unit="days"
             color="orange"
           />
           <StatCard
             title="Average Productivity"
-            value={data.averageProductivity.toFixed(1)}
+            value={String(data.averageProductivity.toFixed(1))}
             unit="%"
             color="purple"
           />
@@ -76,13 +76,13 @@ export default function Dashboard({ data, selectedMonth }: DashboardProps) {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <StatCard
               title="Expected Hours"
-              value={selectedEmployeeData.totalExpectedHours.toFixed(1)}
+              value={String(selectedEmployeeData.totalExpectedHours.toFixed(1))}
               unit="hours"
               color="blue"
             />
             <StatCard
               title="Worked Hours"
-              value={selectedEmployeeData.totalWorkedHours.toFixed(1)}
+              value={String(selectedEmployeeData.totalWorkedHours.toFixed(1))}
               unit="hours"
               color="green"
             />
@@ -94,7 +94,7 @@ export default function Dashboard({ data, selectedMonth }: DashboardProps) {
             />
             <StatCard
               title="Productivity"
-              value={selectedEmployeeData.productivity.toFixed(1)}
+              value={String(selectedEmployeeData.productivity.toFixed(1))}
               unit="%"
               color={
                 selectedEmployeeData.productivity >= 90
@@ -278,5 +278,3 @@ function EmployeeCard({ employee, isSelected, onClick }: EmployeeCardProps) {
     </div>
   );
 }
-
-
