@@ -24,7 +24,8 @@ model Employee {
 
 model Attendance {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  employeeId  String
+  employeeId  String   @db.ObjectId
+  employee    Employee @relation(fields: [employeeId], references: [id])
   date        DateTime
   inTime      String?
   outTime     String?
