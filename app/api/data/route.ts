@@ -10,9 +10,13 @@ import {
   calculateWorkedHours,
 } from '@/lib/utils';
 import { AttendanceData, EmployeeSummary, AttendanceRecord } from '@/types';
-export const maxDuration = 300; 
+
 export async function GET(request: NextRequest) {
+  const startTime = Date.now();
+  console.log('=== Request started ===');
+
   try {
+    // Extract and validate month parameter
     const searchParams = request.nextUrl.searchParams;
     const month = searchParams.get('month');
 
@@ -26,6 +30,8 @@ export async function GET(request: NextRequest) {
     const [year, monthNum] = month.split('-').map(Number);
     const expectedHours = getExpectedWorkingHours(year, monthNum);
     
+    console.log(`Processing data for ${year}-${monthNum}`);
+
     // Check if Prisma is available
     if (!prisma) {
       return NextResponse.json(
@@ -34,7 +40,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get all employees
+    // Fetch all employees with their attendance records for the specified month
+    console.log('Fetching employees and attendance records...');
     const employees = await prisma.employee.findMany({
       include: {
         attendances: {
@@ -48,29 +55,38 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    console.log(`Found ${employees.length} employees`);
+
     // Generate all days in the month
     const startDate = new Date(year, monthNum - 1, 1);
     const endDate = new Date(year, monthNum, 0);
     const allDays: Date[] = [];
+    
     for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
       allDays.push(new Date(d));
     }
 
+    console.log(`Generated ${allDays.length} days for the month`);
+
+    // Process each employee
     const employeeSummaries: EmployeeSummary[] = [];
 
     for (const employee of employees) {
+      // Create a map for quick attendance lookup
       const attendanceMap = new Map<string, Attendance>(
         employee.attendances.map((att: Attendance) => [formatDate(att.date), att])
       );
 
       const dailyRecords: AttendanceRecord[] = [];
 
+      // Process each day of the month
       for (const day of allDays) {
         const dateKey = formatDate(day);
         const expectedHoursForDay = getWorkingHoursForDay(day);
         const attendance = attendanceMap.get(dateKey);
 
         if (attendance) {
+          // Attendance record exists
           dailyRecords.push({
             employeeId: employee.employeeId,
             employeeName: employee.name,
@@ -94,7 +110,7 @@ export async function GET(request: NextRequest) {
             expectedHours: expectedHoursForDay,
           });
         } else {
-          // Sunday - no attendance expected
+          // Sunday or holiday - no attendance expected
           dailyRecords.push({
             employeeId: employee.employeeId,
             employeeName: employee.name,
@@ -108,12 +124,19 @@ export async function GET(request: NextRequest) {
         }
       }
 
+      // Calculate employee summary
       const totalWorkedHours = dailyRecords.reduce(
         (sum, record) => sum + (record.workedHours || 0),
         0
       );
-      const leavesUsed = dailyRecords.filter((r) => r.isLeave && r.expectedHours > 0).length;
-      const productivity = expectedHours > 0 ? (totalWorkedHours / expectedHours) * 100 : 0;
+      
+      const leavesUsed = dailyRecords.filter(
+        (r) => r.isLeave && r.expectedHours > 0
+      ).length;
+      
+      const productivity = expectedHours > 0 
+        ? (totalWorkedHours / expectedHours) * 100 
+        : 0;
 
       employeeSummaries.push({
         employeeId: employee.employeeId,
@@ -126,13 +149,24 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const totalWorkedHours = employeeSummaries.reduce((sum, emp) => sum + emp.totalWorkedHours, 0);
-    const totalLeaves = employeeSummaries.reduce((sum, emp) => sum + emp.leavesUsed, 0);
-    const averageProductivity =
-      employeeSummaries.length > 0
-        ? employeeSummaries.reduce((sum, emp) => sum + emp.productivity, 0) / employeeSummaries.length
-        : 0;
+    console.log(`Processed ${employeeSummaries.length} employee summaries`);
 
+    // Calculate overall statistics
+    const totalWorkedHours = employeeSummaries.reduce(
+      (sum, emp) => sum + emp.totalWorkedHours, 
+      0
+    );
+    
+    const totalLeaves = employeeSummaries.reduce(
+      (sum, emp) => sum + emp.leavesUsed, 
+      0
+    );
+    
+    const averageProductivity = employeeSummaries.length > 0
+      ? employeeSummaries.reduce((sum, emp) => sum + emp.productivity, 0) / employeeSummaries.length
+      : 0;
+
+    // Prepare final result
     const result: AttendanceData = {
       month: new Date(year, monthNum - 1).toLocaleString('default', { month: 'long' }),
       year,
@@ -144,14 +178,43 @@ export async function GET(request: NextRequest) {
       averageProductivity: Math.round(averageProductivity * 100) / 100,
     };
 
-    return NextResponse.json(result);
+    const processingTime = Date.now() - startTime;
+    console.log(`=== Request completed in ${processingTime}ms ===`);
+    console.log('Final result:', {
+      employeesCount: result.employees.length,
+      totalExpectedHours: result.totalExpectedHours,
+      totalWorkedHours: result.totalWorkedHours,
+      totalLeaves: result.totalLeaves,
+      averageProductivity: result.averageProductivity,
+    });
+
+    // Return the response immediately
+    return NextResponse.json(result, { 
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Processing-Time': `${processingTime}ms`,
+      }
+    });
+
   } catch (error: any) {
-    console.error('Data fetch error:', error);
+    const processingTime = Date.now() - startTime;
+    console.error('=== Error occurred ===');
+    console.error('Error details:', error);
+    console.error(`Failed after ${processingTime}ms`);
+    
+    // Return error response immediately
     return NextResponse.json(
-      { error: error.message || 'Failed to fetch data' },
+      { 
+        error: error.message || 'Failed to fetch data',
+        timestamp: new Date().toISOString(),
+        processingTime: `${processingTime}ms`
+      },
       { status: 500 }
     );
+  } finally {
+    // Ensure any cleanup happens but don't delay the response
+    // If you have any connections to close, do it here
+    console.log('=== Request handler finished ===');
   }
 }
-
-
