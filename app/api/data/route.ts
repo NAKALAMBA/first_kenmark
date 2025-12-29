@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
 
     for (const employee of employees) {
       const attendanceMap = new Map(
-        employee.attendances.map((att) => [formatDate(att.date), att])
+        employee.attendances.map((att: any) => [formatDate(att.date), att])
       );
 
       const dailyRecords: AttendanceRecord[] = [];
